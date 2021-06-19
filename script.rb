@@ -1,7 +1,15 @@
-# frozen_string_literal
+# frozen_string_literal: true
+
+require 'bundler/inline'
+
+gemfile do
+  source 'https://rubygems.org'
+
+  gem 'down'
+  gem 'nokogiri'
+end
 
 require 'nokogiri'
-require 'open-uri'
 require "down"
 require "fileutils"
 
@@ -16,25 +24,25 @@ anchors = document.xpath('//a')
 
 dir_num = 0
 anchors.each do |a|
-  if a[:href].start_with?("/songList")
-    puts "Downloading album: #{dir_num}"
-    album_url =  BASE_URL + a[:href]
+  next unless a[:href].start_with?("/songList")
 
-    album_document = Nokogiri::HTML.parse(URI.open(album_url))
-    album_anchors = album_document.xpath('//a')
+  puts "Downloading album: #{dir_num}"
+  album_url =  BASE_URL + a[:href]
 
-    album_dir = "#{DEST_DIR}/#{dir_num}"
-    FileUtils.mkdir_p(album_dir)
+  album_document = Nokogiri::HTML.parse(URI.open(album_url))
+  album_anchors = album_document.xpath('//a')
 
-    album_anchors.each do |aa|
-      if aa[:href].include?(S3_URL) && aa[:href].end_with?('.txt', '.pdf')
-        tempfile = Down.download(aa[:href])
-        FileUtils.mv(tempfile.path, "#{album_dir}/#{tempfile.original_filename}")
-      end
+  album_dir = "#{DEST_DIR}/#{dir_num}"
+  FileUtils.mkdir_p(album_dir)
+
+  album_anchors.each do |aa|
+    if aa[:href].include?(S3_URL) && aa[:href].end_with?('.txt', '.pdf')
+      tempfile = Down.download(aa[:href])
+      FileUtils.mv(tempfile.path, "#{album_dir}/#{tempfile.original_filename}")
     end
-
-    dir_num += 1
   end
+
+  dir_num += 1
 end
 
 puts 'Done!'
